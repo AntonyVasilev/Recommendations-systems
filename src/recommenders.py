@@ -35,6 +35,7 @@ class MainRecommender:
 
     @staticmethod
     def prepare_matrix(data: pd.DataFrame):
+        """Создает матрицу взаимодействия user_item"""
         user_item_matrix = pd.pivot_table(data,
                                           index='user_id',
                                           columns='item_id',
@@ -85,6 +86,7 @@ class MainRecommender:
         return model
 
     def get_rec_similar_items(self, x):
+        """Находит товар, похоий на x"""
         recs = self.model.similar_items(self.itemid_to_id[x], N=2)
         top_rec = recs[1][0]
         return self.id_to_itemid[top_rec]
