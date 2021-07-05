@@ -94,14 +94,15 @@ class MainRecommender:
     def get_similar_items_recommendation(self, user, N=5):
         """Рекомендуем товары, похожие на топ-N купленных юзером товаров"""
 
-        popular_items = self.data.loc[self.data['user_id'] == user, :].groupby('item_id')['quantity'].sum().reset_index()
+        popular_items = self.data.loc[self.data['user_id'] == user, :].groupby('item_id')[
+            'quantity'].sum().reset_index()
         popular_items.rename(columns={'quantity': 'n_sold'}, inplace=True)
         popular_items = popular_items.loc[popular_items['item_id'] != 999999]
         top_n_items = popular_items.sort_values('n_sold', ascending=False).head(N).item_id.tolist()
         similar_items = [self.get_rec_similar_items(item) for item in top_n_items]
 
         assert len(similar_items) == N, 'Количество рекомендаций != {}'.format(N)
-        return similar_items
+        return similar_items, top_n_items
 
     def get_similar_users_recommendation(self, user, N=5):
         """Рекомендуем топ-N товаров, среди купленных похожими юзерами"""
@@ -118,3 +119,22 @@ class MainRecommender:
 
         assert len(res) == N, 'Количество рекомендаций != {}'.format(N)
         return res
+
+
+if __name__ == '__main__':
+    data = pd.read_csv('../raw_data/transaction_data.csv')
+
+    data.columns = [col.lower() for col in data.columns]
+    data.rename(columns={'household_key': 'user_id',
+                         'product_id': 'item_id'},
+                inplace=True)
+
+    test_size_weeks = 3
+
+    data_train = data[data['week_no'] < data['week_no'].max() - test_size_weeks]
+    data_test = data[data['week_no'] >= data['week_no'].max() - test_size_weeks]
+
+    recommender = MainRecommender(data_train)
+    simil_items = recommender.get_similar_items_recommendation(user=2374)
+    simil_users = recommender.get_similar_users_recommendation(user=2374)
+    print(simil_items, simil_users)
