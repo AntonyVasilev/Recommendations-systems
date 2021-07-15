@@ -9,7 +9,7 @@ from implicit.als import AlternatingLeastSquares
 from implicit.bpr import BayesianPersonalizedRanking
 from implicit.nearest_neighbours import ItemItemRecommender, CosineRecommender, TFIDFRecommender
 from implicit.nearest_neighbours import bm25_weight, tfidf_weight
-from metrics import precision_at_k, recall_at_k
+from metrics import recall_at_k, precision_at_k
 
 
 class MainRecommender:
@@ -19,8 +19,9 @@ class MainRecommender:
     user_item_matrix: pd.DataFrame
     """
 
-    def __init__(self, data: pd.DataFrame, weighting: str = 'bm25', model_type: str = 'als',
-                 own_recommender_type: str = 'item-item'):
+    def __init__(self, data: pd.DataFrame, weighting: str = 'bm25',
+                 model_type: str = 'als', own_recommender_type: str = 'item-item',
+                 recommender_params: dict = None, own_recommender_params: dict = None):
         """
         Input
         -----
@@ -49,8 +50,10 @@ class MainRecommender:
         elif weighting == 'tfidf':
             self.user_item_matrix = tfidf_weight(self.user_item_matrix.T).T
 
-        self.model = self.fit(self.user_item_matrix, model_type)
-        self.own_recommender = self.fit_own_recommender(self.user_item_matrix, own_recommender_type)
+        self.model = self.fit(self.user_item_matrix, model_type, recommender_params)
+        self.own_recommender = self.fit_own_recommender(self.user_item_matrix,
+                                                        own_recommender_type,
+                                                        own_recommender_params)
 
     @staticmethod
     def _prepare_matrix(data: pd.DataFrame):
@@ -86,14 +89,16 @@ class MainRecommender:
         return id_to_itemid, id_to_userid, itemid_to_id, userid_to_id
 
     @staticmethod
-    def fit_own_recommender(user_item_matrix, own_recommender_type, params=None):
+    def fit_own_recommender(user_item_matrix, own_recommender_type, params):
         """
         Обучает модель, которая рекомендует товары, среди товаров, купленных юзером
         Параметры для рекомендательной модели передаются в виде словаря
         """
 
-        if not params:
+        if params is None:
             params = {'K': 1, 'num_threads': 4}
+
+        own_recommender = None
 
         if own_recommender_type == 'item-item':
             own_recommender = ItemItemRecommender(**params)
@@ -106,14 +111,16 @@ class MainRecommender:
         return own_recommender
 
     @staticmethod
-    def fit(user_item_matrix, model_type, params=None):
+    def fit(user_item_matrix, model_type, params):
         """
         Обучает модель
         Параметры для рекомендательной модели передаются в виде словаря
         """
 
-        if not params:
+        if params is None:
             params = {'factors': 20, 'regularization': 0.001, 'iterations': 15, 'num_threads': 4}
+
+        model = None
 
         if model_type == 'als':
             model = AlternatingLeastSquares(**params)
@@ -210,13 +217,37 @@ class MainRecommender:
         return res
 
     @staticmethod
-    def _get_result_matcher(df_result):
-        result_eval_matcher = df_result.groupby('user_id')['item_id'].unique().reset_index()
-        result_eval_matcher.columns = ['user_id', 'actual']
-        return result_eval_matcher
+    def _get_result(df_result):
+        result_eval = df_result.groupby('user_id')['item_id'].unique().reset_index()
+        result_eval.columns = ['user_id', 'actual']
+        return result_eval
+
+    def _get_recommend_eval(self, result_eval, target_col_name, result_col_name,
+                            recommend_model_type, N_PREDICT):
+
+        # result_eval = df_result.groupby('user_id')['item_id'].unique().reset_index()
+        # result_eval.columns = ['user_id', 'actual']
+
+        if recommend_model_type == 'own':
+            result_eval[result_col_name] = result_eval[target_col_name].apply(
+                lambda x: self.get_own_recommendations(x, N=N_PREDICT))
+        elif recommend_model_type == 'rec':
+            result_eval[result_col_name] = result_eval[target_col_name].apply(
+                lambda x: self.get_recommendations(x, N=N_PREDICT))
+        elif recommend_model_type == 'itm':
+            result_eval[result_col_name] = result_eval[target_col_name].apply(
+                lambda x: self.get_similar_items_recommendation(x, N=N_PREDICT))
+        elif recommend_model_type == 'usr':
+            result_eval[result_col_name] = result_eval[target_col_name].apply(
+                lambda x: self.get_similar_users_recommendation(x, N=N_PREDICT))
+        else:
+            return
+
+        return result_eval
 
     def evalMetrics(self, metric_type, df_result, target_col_name, recommend_model_type, N_PREDICT):
         """
+        metric_type: 'recall' or 'precision'
         recommend_model_type:
             'own': self.get_own_recommendations
             'rec': self.get_recommendations
@@ -224,29 +255,40 @@ class MainRecommender:
             'usr': self.get_similar_users_recommendation
         """
 
-        result_eval_matcher = self._get_result_matcher(df_result)
+        result_eval = self._get_result(df_result)
         result_col_name = 'result_' + recommend_model_type
 
-        if recommend_model_type == 'own':
-            result_eval_matcher[result_col_name] = result_eval_matcher[target_col_name].apply(
-                lambda x: self.get_own_recommendations(x, N=N_PREDICT))
-        elif recommend_model_type == 'rec':
-            result_eval_matcher[result_col_name] = result_eval_matcher[target_col_name].apply(
-                lambda x: self.get_recommendations(x, N=N_PREDICT))
-        elif recommend_model_type == 'itm':
-            result_eval_matcher[result_col_name] = result_eval_matcher[target_col_name].apply(
-                lambda x: self.get_similar_items_recommendation(x, N=N_PREDICT))
-        elif recommend_model_type == 'usr':
-            result_eval_matcher[result_col_name] = result_eval_matcher[target_col_name].apply(
-                lambda x: self.get_similar_users_recommendation(x, N=N_PREDICT))
-        else:
-            return 'recommend_model_type must not be empty!'
+        result_eval = self._get_recommend_eval(result_eval, target_col_name, result_col_name,
+                                               recommend_model_type, N_PREDICT)
 
         if metric_type == 'recall':
-            return result_eval_matcher.apply(lambda row: recall_at_k(row[result_col_name], row['actual'], k=N_PREDICT),
-                                             axis=1).mean()
+            return result_eval.apply(lambda row: recall_at_k(row[result_col_name], row['actual'], k=N_PREDICT),
+                                     axis=1).mean()
         elif metric_type == 'precision':
-            return result_eval_matcher.apply(lambda row: precision_at_k(row[result_col_name], row['actual'],
-                                                                        k=N_PREDICT), axis=1).mean()
-        else:
-            return 'recommend_model_type must not be empty!'
+            return result_eval.apply(lambda row: precision_at_k(row[result_col_name], row['actual'],
+                                                                k=N_PREDICT), axis=1).mean()
+
+    @staticmethod
+    def _rerank(user_id, df_predict, target_col_name):
+        return df_predict[df_predict[target_col_name] == user_id].sort_values('proba_item_purchase',
+                        ascending=False).head(5).item_id.tolist()
+
+    def reranked_metrics(self, metric_type, df_result, df_predict,
+                         target_col_name, recommend_model_type, N_PREDICT):
+
+        result_eval = self._get_result(df_result)
+        result_col_name = 'result_' + recommend_model_type
+        reranked_col_name = 'reranked_' + recommend_model_type + '_rec'
+
+        result_eval = self._get_recommend_eval(result_eval, target_col_name, result_col_name,
+                                               recommend_model_type, N_PREDICT)
+
+        result_eval[reranked_col_name] = result_eval[target_col_name].apply(
+                    lambda user_id: self._rerank(user_id, df_predict, target_col_name))
+
+        if metric_type == 'recall':
+            return result_eval.apply(lambda row: recall_at_k(row[reranked_col_name], row['actual'], k=N_PREDICT),
+                                     axis=1).mean()
+        elif metric_type == 'precision':
+            return result_eval.apply(lambda row: precision_at_k(row[reranked_col_name], row['actual'],
+                                                                k=N_PREDICT), axis=1).mean()
