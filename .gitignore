@@ -5,6 +5,7 @@ __pycache__/
 
 data/
 .idea/
+catboost_info/
 
 # C extensions
 *.so
