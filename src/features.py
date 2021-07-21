@@ -280,3 +280,42 @@ def get_user_freq_per_basket(df_join_train_matcher):
     """Средняя частота пользователей купивших товар"""
     return df_join_train_matcher.groupby(by='user_id').agg('user_id').count(). \
                rename('user_freq_per_basket') / df_join_train_matcher.basket_id.nunique()
+
+
+def get_n_transactions(data_train_ranker):
+    return data_train_ranker.groupby(by=['user_id'])['basket_id'].nunique().reset_index().rename(
+        columns={'basket_id': 'n_transactions'})
+
+
+def get_n_stores(data_train_ranker):
+    return data_train_ranker.groupby(by=['item_id'])['store_id'].nunique().reset_index().rename(
+        columns={'store_id': 'n_stores'})
+
+
+def get_unique_items_in_basket(data_train_ranker):
+    nunique_items_per_purchse_by_user = data_train_ranker.groupby(by=['user_id', 'basket_id']
+                                                                  )['item_id'].nunique().reset_index()
+    nunique_items = nunique_items_per_purchse_by_user.groupby(by=['user_id'])['item_id'].mean(). \
+        reset_index().rename(columns={'item_id': 'mean_unique_items'})
+    nunique_items = nunique_items.merge(nunique_items_per_purchse_by_user.groupby(by=['user_id'])[
+                                            'item_id'].max().reset_index().rename(
+        columns={'item_id': 'max_unique_items'}), on='user_id', how='left')
+    nunique_items = nunique_items.merge(nunique_items_per_purchse_by_user.groupby(by=['user_id'])[
+                                            'item_id'].std().reset_index().rename(
+        columns={'item_id': 'std_unique_items'}), on='user_id', how='left')
+    return nunique_items
+
+
+def get_unique_departments_in_basket(data_train_ranker, item_features):
+    nunique_departments_per_purchse_by_user = \
+        data_train_ranker.merge(item_features, on='item_id', how='left').groupby(by=['user_id', 'basket_id'])[
+            'department'].nunique().reset_index()
+    nunique_departments = nunique_departments_per_purchse_by_user.groupby(by=['user_id'])['department'].mean(). \
+        reset_index().rename(columns={'department': 'mean_unique_departments'})
+    nunique_departments = nunique_departments.merge(nunique_departments_per_purchse_by_user.groupby(by=['user_id'])[
+        'department'].max().reset_index().rename(
+        columns={'department': 'max_unique_departments'}), on='user_id', how='left')
+    nunique_departments = nunique_departments.merge(nunique_departments_per_purchse_by_user.groupby(by=['user_id'])[
+        'department'].std().reset_index().rename(
+        columns={'department': 'std_unique_departments'}), on='user_id', how='left')
+    return nunique_departments
