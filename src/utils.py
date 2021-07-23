@@ -5,8 +5,7 @@ import numpy as np
 def prefilter_items(data, take_n_popular=5000, item_features=None):
     # Уберем не интересные для рекоммендаций категории (department)
     if item_features is not None:
-        department_size = pd.DataFrame(item_features. \
-                                       groupby('department')['item_id'].nunique(). \
+        department_size = pd.DataFrame(item_features.groupby('department')['item_id'].nunique(). \
                                        sort_values(ascending=False)).reset_index()
 
         department_size.columns = ['department', 'n_items']

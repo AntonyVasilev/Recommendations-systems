@@ -27,7 +27,20 @@ class MainRecommender:
         Input
         -----
         data: датафрейм с данными
-        weighting: 'bm25', 'tfidf' - меотд взвешивания user_item_matrix
+        weighting: метод взвешивания user_item_matrix : 'bm25', 'tfidf'
+        model_type: тип модели матричной факторизации: 'als' - AlternatingLeastSquares,
+                                                        'bpr' - BayesianPersonalizedRanking
+        own_recommender_type: тип own recommender: 'item-item' - ItemItemRecommender,
+                                                    'cosine' - CosineRecommender,
+                                                    'tfidf' - TFIDFRecommender
+        recommender_params: словарь с параметрами для модели матричной факторизации
+        own_recommender_params: словарь с параметрами для own recommender
+        user_item_matrix_values: вид данных для заполнения матрицы user-item:
+                'binary': 0/1 - пользователь не взаимодействовал / взаимодействовал с товаром
+                'quantity': в случае, если пользователь взаимодействовал с товарот, то указывается значение признака
+                               quantity. Если нет, то 0.
+                'purchase_sum': в случае, если пользователь взаимодействовал с товарот, то указывается значение признака
+                               sales_value. Если нет, то 0.
         """
 
         # Топ покупок каждого юзера
@@ -43,7 +56,7 @@ class MainRecommender:
 
         self.user_item_matrix = self._prepare_matrix(data, user_item_matrix_values)  # pd.DataFrame
         self.id_to_itemid, self.id_to_userid, \
-        self.itemid_to_id, self.userid_to_id = self._prepare_dicts(self.user_item_matrix)
+            self.itemid_to_id, self.userid_to_id = self._prepare_dicts(self.user_item_matrix)
 
         # Взвешивание
         if weighting == 'bm25':
@@ -69,7 +82,7 @@ class MainRecommender:
                                               aggfunc='count',
                                               fill_value=0
                                               )
-        elif user_item_matrix_values == 'sales_value':
+        elif user_item_matrix_values == 'quantity':
             user_item_matrix = pd.pivot_table(data,
                                               index='user_id',
                                               columns='item_id',
@@ -149,6 +162,7 @@ class MainRecommender:
         return model
 
     def get_item_factors(self):
+        """Возвращает латентные факторы товаров, расчитанные моделью матричной факторизации"""
         item_factors = pd.DataFrame(self.model.item_factors)
         item_factors.columns = [f'item_factor_{i}' for i in range(len(item_factors.columns))]
         item_ids = [self.id_to_itemid[itm_id] for itm_id in range(item_factors.shape[0])]
@@ -157,6 +171,7 @@ class MainRecommender:
         return item_factors
 
     def get_user_factors(self):
+        """Возвращает латентные факторы пользователей, расчитанные моделью матричной факторизации"""
         user_factors = pd.DataFrame(self.model.user_factors)
         user_factors.columns = [f'user_factor_{i}' for i in range(len(user_factors.columns))]
         user_ids = [self.id_to_userid[usr_id] for usr_id in range(user_factors.shape[0])]
@@ -165,7 +180,7 @@ class MainRecommender:
         return user_factors
 
     def _update_dict(self, user_id):
-        """Если появился новыю user / item, то нужно обновить словари"""
+        """Если появился новый user / item, то нужно обновить словари"""
 
         if user_id not in self.userid_to_id.keys():
             max_id = max(list(self.userid_to_id.values()))
@@ -276,6 +291,7 @@ class MainRecommender:
 
     def evalMetrics(self, metric_type, df_result, target_col_name, recommend_model_type, N_PREDICT):
         """
+        Возвращает значение метрики качества модели
         metric_type: 'recall' or 'precision'
         recommend_model_type:
             'own': self.get_own_recommendations
@@ -305,6 +321,17 @@ class MainRecommender:
     def reranked_metrics(self, metric_type, df_result, df_predict,
                          target_col_name, recommend_model_type, N_PREDICT, return_reranked_data=False):
 
+        """
+        Возвращает значение метрики модели ранжирования
+        :param metric_type:
+        :param df_result:
+        :param df_predict:
+        :param target_col_name:
+        :param recommend_model_type:
+        :param N_PREDICT:
+        :param return_reranked_data:
+        :return:
+        """
         result_eval = self._get_result(df_result)
         result_col_name = 'result_' + recommend_model_type
         reranked_col_name = 'reranked_' + recommend_model_type + '_rec'
