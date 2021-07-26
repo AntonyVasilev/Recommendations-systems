@@ -2,6 +2,7 @@ import pandas as pd
 
 
 def get_last_5_purchases_as_bit_array(data_train_ranker, item_features):
+    """Заказ товара в последних 5 транзакциях в виде последовательности бит (категориальная)"""
     purchases_by_time = data_train_ranker.merge(item_features, on='item_id',
                                                 how='left').groupby(by=['day', 'trans_time', 'basket_id', 'item_id']
                                                                     )['quantity'].count().reset_index().sort_values(
@@ -36,6 +37,7 @@ def get_last_5_purchases_as_bit_array(data_train_ranker, item_features):
 
 
 def get_mean_purchase_per_item_by_department(data_train_ranker, item_features):
+    """Средняя сумма покупки 1 товара в каждой категории"""
     sales_value_by_department = data_train_ranker.merge(item_features, on='item_id',
                                                         how='left').groupby(by=['user_id', 'department'])[
         'sales_value'].sum().reset_index()
@@ -53,6 +55,7 @@ def get_mean_purchase_per_item_by_department(data_train_ranker, item_features):
 
 
 def get_num_purchases_per_department(data_train_ranker, item_features):
+    """Кол-во покупок в каждой категории"""
     num_purchases_by_department = data_train_ranker.merge(item_features, on='item_id',
                                                           how='left').groupby(by=['user_id', 'department'])[
         'basket_id'].nunique().reset_index()
@@ -64,6 +67,7 @@ def get_num_purchases_per_department(data_train_ranker, item_features):
 
 
 def get_proportion_of_purchases_by_times_of_day(data_train_ranker):
+    """Доля покупок утром/днем/вечером"""
     users_transactions = data_train_ranker[['user_id', 'trans_time']].drop_duplicates(
         subset=['trans_time']).reset_index().drop('index', axis=1)
     users_list = users_transactions.user_id.unique().tolist()
@@ -94,6 +98,7 @@ def get_proportion_of_purchases_by_times_of_day(data_train_ranker):
 
 
 def get_num_purchases_per_week(data_train_ranker):
+    """Кол-во покупок в неделю"""
     num_purchases_by_week = data_train_ranker.groupby(by=['item_id',
                                                           'week_no'])['basket_id'].nunique().reset_index()
     num_purchases_by_week.rename(columns={'basket_id': 'week_num_purchases'}, inplace=True)
@@ -105,6 +110,7 @@ def get_num_purchases_per_week(data_train_ranker):
 
 
 def get_mean_num_purchases_per_item_dept_week(data_train_ranker, item_features):
+    """Среднее кол-во покупок 1 товара в категории в неделю"""
     n_purchases_by_dept = data_train_ranker.merge(item_features, on='item_id', how='left').groupby(
         by=['department', 'week_no', 'item_id'])['basket_id'].nunique().reset_index()
     n_purchases_by_dept.rename(columns={'basket_id': 'n_purchases'}, inplace=True)
@@ -129,6 +135,7 @@ def get_mean_num_purchases_per_item_dept_week(data_train_ranker, item_features):
 
 
 def get_price(data_train_ranker):
+    """Цена"""
     item_price_df = data_train_ranker[['item_id', 'quantity', 'sales_value', 'retail_disc']].copy()
     item_price_df['price'] = (item_price_df.sales_value -
                               item_price_df.retail_disc) / item_price_df.quantity
@@ -137,6 +144,7 @@ def get_price(data_train_ranker):
 
 
 def get_mean_price_by_department(df_ranker_train):
+    """Средняя цена товара в категории"""
     mean_price_by_department = df_ranker_train[['department',
                                                 'price']].groupby('department')['price'].mean().reset_index()
     mean_price_by_department.rename(columns={'price': 'mean_price'}, inplace=True)
@@ -144,6 +152,7 @@ def get_mean_price_by_department(df_ranker_train):
 
 
 def get_user_nun_purchases_per_week(data_train_ranker, item_features):
+    """Кол-во покупок юзером конкретной категории в неделю"""
     purchases_by_usr = data_train_ranker.merge(item_features, on='item_id', how='left'
                                                ).groupby(by=['user_id', 'department', 'week_no'])[
         'basket_id'].nunique().reset_index()
@@ -160,6 +169,7 @@ def get_user_nun_purchases_per_week(data_train_ranker, item_features):
 
 
 def get_mean_purchases_all_users_by_department_per_week(data_train_ranker, item_features):
+    """Среднее кол-во покупок всеми юзерами конкретной категории в неделю"""
     all_users_purchases = data_train_ranker.merge(item_features, on='item_id', how='left'
                                                   ).groupby(by=['department', 'week_no', 'user_id'])[
         'basket_id'].nunique().reset_index()
@@ -177,6 +187,7 @@ def get_mean_purchases_all_users_by_department_per_week(data_train_ranker, item_
 
 
 def get_num_purchases_sub_by_mean(data_train_ranker, item_features):
+    """(Кол-во покупок юзером конкретной категории в неделю) - (Среднее кол-во покупок всеми юзерами конкретной категории в неделю)"""
     usr_purchases_by_dept = get_user_nun_purchases_per_week(data_train_ranker, item_features)
     all_users_purchases_by_dept = get_mean_purchases_all_users_by_department_per_week(
         data_train_ranker, item_features)
@@ -192,6 +203,7 @@ def get_num_purchases_sub_by_mean(data_train_ranker, item_features):
 
 
 def get_num_purchases_div_by_mean_all_users(data_train_ranker, item_features):
+    """(Кол-во покупок юзером конкретной категории в неделю) / (Среднее кол-во покупок всеми юзерами конкретной категории в неделю)"""
     usr_purchases_by_dept = get_user_nun_purchases_per_week(data_train_ranker, item_features)
     all_users_purchases_by_dept = get_mean_purchases_all_users_by_department_per_week(
         data_train_ranker, item_features)
@@ -207,6 +219,7 @@ def get_num_purchases_div_by_mean_all_users(data_train_ranker, item_features):
 
 
 def get_mean_sales_value_per_item_by_department(data_train_ranker, item_features):
+    """(Средняя сумма покупки 1 товара в каждой категории (берем категорию item_id)) - (Цена item_id)"""
     sales_values_by_dept = data_train_ranker.merge(item_features, on='item_id',
                                                    how='left').groupby(by=['department']
                                                                        ).agg({'item_id': 'count',
@@ -275,7 +288,6 @@ def get_item_freq_per_basket(df_join_train_matcher):
     return df_join_train_matcher.groupby(by='item_id').agg('user_id').count(). \
                rename('item_freq_per_basket') / df_join_train_matcher.basket_id.nunique()
 
-
 def get_user_freq_per_basket(df_join_train_matcher):
     """Средняя частота пользователей купивших товар"""
     return df_join_train_matcher.groupby(by='user_id').agg('user_id').count(). \
@@ -283,16 +295,19 @@ def get_user_freq_per_basket(df_join_train_matcher):
 
 
 def get_n_transactions(data_train_ranker):
+    """Кол-во транзакций клиента"""
     return data_train_ranker.groupby(by=['user_id'])['basket_id'].nunique().reset_index().rename(
         columns={'basket_id': 'n_transactions'})
 
 
 def get_n_stores(data_train_ranker):
+    """Кол-во магазинов, в которых продавался товар"""
     return data_train_ranker.groupby(by=['item_id'])['store_id'].nunique().reset_index().rename(
         columns={'store_id': 'n_stores'})
 
 
 def get_unique_items_in_basket(data_train_ranker):
+    """mean / max / std кол-ва уникальных товаров в корзине клиента"""
     nunique_items_per_purchse_by_user = data_train_ranker.groupby(by=['user_id', 'basket_id']
                                                                   )['item_id'].nunique().reset_index()
     nunique_items = nunique_items_per_purchse_by_user.groupby(by=['user_id'])['item_id'].mean(). \
@@ -307,6 +322,7 @@ def get_unique_items_in_basket(data_train_ranker):
 
 
 def get_unique_departments_in_basket(data_train_ranker, item_features):
+    """mean / max / std кол-ва уникальных категорий в корзине клиента"""
     nunique_departments_per_purchse_by_user = \
         data_train_ranker.merge(item_features, on='item_id', how='left').groupby(by=['user_id', 'basket_id'])[
             'department'].nunique().reset_index()

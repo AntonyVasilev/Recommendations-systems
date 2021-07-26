@@ -13,12 +13,7 @@ from src.metrics import recall_at_k, precision_at_k
 
 
 class MainRecommender:
-    """Рекоммендации, которые можно получить из ALS
-    Input
-    -----
-    user_item_matrix: pd.DataFrame
-    """
-
+    
     def __init__(self, data: pd.DataFrame, weighting: str = 'bm25',
                  model_type: str = 'als', own_recommender_type: str = 'item-item',
                  recommender_params: dict = None, own_recommender_params: dict = None,
@@ -293,11 +288,13 @@ class MainRecommender:
         """
         Возвращает значение метрики качества модели
         metric_type: 'recall' or 'precision'
+        df_result: датафрейм с тестовыми данными
         recommend_model_type:
             'own': self.get_own_recommendations
             'rec': self.get_recommendations
             'itm': self.get_similar_items_recommendation
             'usr': self.get_similar_users_recommendation
+        N_PREDICT: коэффициент 'K'
         """
 
         result_eval = self._get_result(df_result)
@@ -319,18 +316,20 @@ class MainRecommender:
                                                                               ascending=False).head(5).item_id.tolist()
 
     def reranked_metrics(self, metric_type, df_result, df_predict,
-                         target_col_name, recommend_model_type, N_PREDICT, return_reranked_data=False):
+                         target_col_name, recommend_model_type, N_PREDICT, return_reranked_data=True):
 
         """
         Возвращает значение метрики модели ранжирования
-        :param metric_type:
-        :param df_result:
-        :param df_predict:
-        :param target_col_name:
-        :param recommend_model_type:
-        :param N_PREDICT:
-        :param return_reranked_data:
-        :return:
+        metric_type: 'recall' или 'precision'
+        df_result: датафрейм с тестовыми данными
+        df_predict: датафрейм со скором для переранжирования
+        recommend_model_type: 
+            'own': self.get_own_recommendations
+            'rec': self.get_recommendations
+            'itm': self.get_similar_items_recommendation
+            'usr': self.get_similar_users_recommendation
+        N_PREDICT: коэффициент 'K'
+        return_reranked_data: Если 'True', помимо значения метрики возвращает датафрейм с переранжированными данными
         """
         result_eval = self._get_result(df_result)
         result_col_name = 'result_' + recommend_model_type
