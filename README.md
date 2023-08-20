@@ -1,22 +1,21 @@
-# Курсовой проект по курсу "Рекомендательные системы"
-#### Исполнитель Васильев Антон
-**Задача:** Создать модель для рекомендаций товаров покупателям.  
-**Метрика:** 𝑝𝑟𝑒𝑐𝑖𝑠𝑖𝑜𝑛@5
+# Recommender system
+**The aim:** of this project is creating a model to recommend the goods for the customers.  
+**The metric:** 𝑝𝑟𝑒𝑐𝑖𝑠𝑖𝑜𝑛@5
 
-**Данные (упакованы в архив data.zip):** 
- * retail_train.csv - тренировочный датафрейм с данными о покупках
- * product.csv - датафрейм с дополнительными данными о продуктах
- * hh_demographic.csv - датафрейм с дополнительными данными о пользователях 
- * retail_test1.csv - тестовый датафрейм с данными о покупках
+**Data (packed in data.zip):** 
+ * retail_train.csv - a train dataframe with the data of the purchases
+ * product.csv - an additional dataframe with an information about goods
+ * hh_demographic.csv - a dataframe with an additional information about customers 
+ * retail_test1.csv - a test dataframe with the data of the purchases
  
-**Использованная модель:** Использовал двухуровневую модель. На первом уровне CosineRecommender отбирает кандидатов для ранжирования. На втором уровне CatBoostClassifier расчитывает скоры для переранжирования кандидатов из первого этапа отбора.  
+**The model:** Used a two-level model. CosineRecommender selects candidates for ranking at the first-level. CatBoostClassifier calculates scores for re-ranking candidates from 1st level at the second one.  
 
-**Структура данных проекта:**  
- * **src.** Написанные функции: 
-  * *metrics* - различные метрики, 
-  * *utils* - предфильтрация данных, 
-  * *features* - создание дополнительных признаков для модели второго уровня, 
-  * *recommenders* - содержит класс *MainRecommender*, который производит отбор кандидатов и последующее их переранжирование на основе скора от модели второго уровня.  
- * **draft_notebooks.** Черновые ноутбуки с различными вариантами решения задачи.  
+**The structure of the project:**  
+ * **src.** functions: 
+  * *metrics* - metrics, 
+  * *utils* - data pre-filtering, 
+  * *features* - creating new features gor the second level of the model, 
+  * *recommenders* - contains a *MainRecommender* class which performs the selection of candidates and their re-ranking based on the score from the first-level model.  
+ * **draft_notebooks.** draft notebooks with different solutions to the problem.  
  
-### После переранжирования модель показала значение 𝑝𝑟𝑒𝑐𝑖𝑠𝑖𝑜𝑛@5≈0.26324
+### After re-ranking the model shows 𝑝𝑟𝑒𝑐𝑖𝑠𝑖𝑜𝑛@5≈0.26324
