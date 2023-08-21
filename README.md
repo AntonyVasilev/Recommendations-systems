@@ -1,5 +1,5 @@
 # Recommender system
-**The aim:** of this project is creating a model to recommend the goods for the customers.  
+**The aim:** creating a model to recommend the goods for the customers.  
 **The metric:** 𝑝𝑟𝑒𝑐𝑖𝑠𝑖𝑜𝑛@5
 
 **Data (packed in data.zip):** 
