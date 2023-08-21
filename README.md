@@ -2,6 +2,8 @@
 **The aim:** creating a model to recommend the goods for the customers.  
 **The metric:** 𝑝𝑟𝑒𝑐𝑖𝑠𝑖𝑜𝑛@5
 
+**Stack:** Python 3, Pandas, Numpy, Matplotlib, SciPy, Implicit, CatBoost
+
 **Data (packed in data.zip):** 
  * retail_train.csv - a train dataframe with the data of the purchases
  * product.csv - an additional dataframe with an information about goods
